@@ -7,12 +7,16 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
+use App\Jobs\SendEmailVerification;
+use Illuminate\Auth\Events\Registered;
+
 
 class RegisterController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
-    | Register Controller
+    |                       Register Controller
     |--------------------------------------------------------------------------
     |
     | This controller handles the registration of new users as well as their
@@ -22,6 +26,80 @@ class RegisterController extends Controller
     */
 
     use RegistersUsers;
+
+    public function showRegistrationForm(Request $request)
+    {
+        /**
+         * -----------------------------------------------------------
+         *          GET request /register?code=XXXXXX (last step)
+         * -----------------------------------------------------------
+         * 
+         *  
+         * 
+         * 
+         */
+        
+        if($request->has('code')){
+            if($request->code==session('code')){
+                session(['success'=>'verified']);
+                return view('auth.register');
+            }  
+            else{
+                if(session()->has('email')){
+                    session()->flash('failed','Wrong Code');
+                    return redirect('register?email='.urlencode(session('email')));
+                } else {
+                    return redirect()->route('register');
+                }
+            }
+        }
+
+        /**
+         * ---------------------------------------------------------------
+         *      GET request /register?email=XXXXXX@XX.com (Second step)
+         * ---------------------------------------------------------------
+         * 
+         * 
+         * 
+         */
+
+
+
+        if($request->has('email')){
+            $validatedData = $request->validate([
+                'email' => 'email|required|unique:users',
+            ]);
+
+            if(session()->has('failed')){
+                return view('auth.verify');
+            }
+
+            // generate a code
+            $code = 5;
+            while(strlen($code)<6){
+                $code = rand() + 89 * 19 + 37;
+                $code %= 100000;
+                $code = '5' . $code;
+            }
+
+            session(['email' => $request->email]);
+            session(['code' => $code]);
+        
+            SendEmailVerification::dispatch($request->email, $code);
+            
+            return view('auth.verify');
+        }
+        
+        /**
+         * ------------------------------------------------
+         *                  First step
+         * ------------------------------------------------
+         * 
+         *  return view of entering email
+         * 
+         */
+        return view('auth.email');
+    }
 
     /**
      * Where to redirect users after registration.
@@ -50,11 +128,104 @@ class RegisterController extends Controller
     {
         return Validator::make($data, [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
+            'terms' => 'accepted',
+            'email' => 'email|unique:users'
         ]);
     }
 
+
+
+
+
+    
+    
+    protected $mail;
+
+
+    
+    /**
+     * --------------------------------------------------------------
+     *              POST request /register ( last step )
+     * --------------------------------------------------------------
+     */
+
+
+    public function register(Request $request)
+    {
+        /**----------------------------------------------------------
+         *              Google recaptcha verification
+         * ----------------------------------------------------------
+         *    
+         * Go to https://www.google.com/recaptcha/admin#list -->
+         *'Register a new site' for make new API 'key' and 'secret'.
+         * reference --> https://www.youtube.com/watch?v=a3ubiUOAHTc
+         * 
+         * 
+         */
+        $client = new \GuzzleHttp\Client();
+        $token = $request->input('g-recaptcha-response');
+        $res = $client->post('https://www.google.com/recaptcha/api/siteverify', [
+            'form_params' => [
+            'secret' => '6Ld8P2IUAAAAAK_zLYcF0MXAwxcaQzQAzxxGBxz7',
+            'response' => $token,
+            ]
+        ]);
+        $result = json_decode($res->getBody()->getContents());
+        if(!$result->success){
+            $request->session()->flash('google', $result->{'error-codes'}[0]);
+            return redirect()->back();
+        }
+
+        /**
+         * ----------------------------------------------------------
+         *                 Google recaptcha verified
+         * ----------------------------------------------------------
+         * 
+         * 
+         * 
+         * 
+         */
+        
+
+        
+        /**
+         * If User delays more than 120 miniutes we will loose
+         * Session data (verified email) 
+         * so we check Session has success and email
+         * 
+         * 
+         */
+
+        if(! ($request->session()->has('success') )){
+            if(! $request->session()->has('email'))
+                return redirect()->route('register');
+        }
+
+        
+        
+        $this->mail = session('email');
+        
+
+        $arr = $request->all();
+        $arr['email'] = $this->mail;
+        
+        $this->validator($arr)->validate();
+
+        session()->flush();
+        
+        event(new Registered($user = $this->create($request->all())));
+
+        $this->guard()->login($user);
+
+        return $this->registered($request, $user)
+                        ?: redirect($this->redirectPath());
+    }
+    
+    
+    
+    
+    
     /**
      * Create a new user instance after a valid registration.
      *
@@ -65,7 +236,7 @@ class RegisterController extends Controller
     {
         return User::create([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'email' => $this->mail,
             'password' => Hash::make($data['password']),
         ]);
     }

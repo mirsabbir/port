@@ -8,8 +8,12 @@
                 <div class="card-header">{{ __('Login') }}</div>
 
                 <div class="card-body">
+
+                    
                     <form method="POST" action="{{ route('login') }}" aria-label="{{ __('Login') }}">
                         @csrf
+
+
 
                         <div class="form-group row">
                             <label for="email" class="col-sm-4 col-form-label text-md-right">{{ __('E-Mail Address') }}</label>
@@ -61,6 +65,13 @@
                             </div>
                         </div>
                     </form>
+                    <h5>Or Login with: </h5>
+                    <div class="row">
+                        <div class="col" style="text-align:center;"> <a href="login/facebook"> <img src="{{asset('images/facebook.png')}}" alt="" height=40 width=40> </a>  </div>
+                        <div class="col" style="text-align:center;"> <a href="login/twitter"> <img src="{{asset('images/twitter.png')}}" alt="" height=40 width=40> </a> </div>
+                        <div class="col" style="text-align:center;"> <a href="login/google"> <img src="{{asset('images/google.png')}}" alt="" height=40 width=40> </a> </div>
+                        <div class="col" style="text-align:center;"> <a href="login/linkedin"> <img src="{{asset('images/linkedin.png')}}" alt="" height=40 width=40> </a> </div>
+                    </div>
                 </div>
             </div>
         </div>
