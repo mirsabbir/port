@@ -27,6 +27,26 @@ class ResetPasswordController extends Controller
      */
     protected $redirectTo = '/dashboard';
 
+
+
+     /**
+     * Get the response for a successful password reset.
+     *
+     * @param  string  $response
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     */
+    protected function sendResetResponse($response)
+    {
+
+        if(session()->has('redirect')){
+            $this->redirectTo = session('redirect');
+            session()->forget('redirect');
+        }
+
+        return redirect($this->redirectPath())
+                            ->with('status', trans($response));
+    }
+
     /**
      * Create a new controller instance.
      *

@@ -40,6 +40,30 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
     }
 
+
+    /**
+     * Send the response after the user was authenticated.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    protected function sendLoginResponse(Request $request)
+    {
+        if(session()->has('redirect')){
+            $this->redirectTo = session('redirect');
+            session()->forget('redirect');
+        }
+
+        $request->session()->regenerate();
+
+        $this->clearLoginAttempts($request);
+
+        return $this->authenticated($request, $this->guard()->user())
+                ?: redirect()->intended($this->redirectPath());
+    }
+
+
+
     /**
      * --------------------------------------------------------
      *                        Facebook
@@ -54,8 +78,7 @@ class LoginController extends Controller
     public function handleProviderCallback(){
 
         $user = Socialite::driver('facebook')->user();
-        dd($user);
-
+        
     }
 
     /**
@@ -73,7 +96,7 @@ class LoginController extends Controller
     public function handleProviderCallbackGoogle(){
         
         $user = Socialite::driver('google')->user();
-        dd($user);
+        
 
     }
 
@@ -90,7 +113,7 @@ class LoginController extends Controller
     public function handleProviderCallbackTwitter(){
         
         $user = Socialite::driver('twitter')->user();
-        return  [$user->token];
+        
 
     }
 
@@ -109,7 +132,7 @@ class LoginController extends Controller
     public function handleProviderCallbackLinkedin(){
         
         $user = Socialite::driver('linkedin')->user();
-        return  [$user->token];
+        
 
     }
    

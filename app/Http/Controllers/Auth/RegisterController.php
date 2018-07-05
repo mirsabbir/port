@@ -14,6 +14,14 @@ use Illuminate\Auth\Events\Registered;
 
 class RegisterController extends Controller
 {
+
+    /**
+     * Where to redirect users after registration.
+     *
+     * @var string
+     */
+    protected $redirectTo = '/dashboard';
+
     /*
     |--------------------------------------------------------------------------
     |                       Register Controller
@@ -26,6 +34,9 @@ class RegisterController extends Controller
     */
 
     use RegistersUsers;
+
+
+
 
     public function showRegistrationForm(Request $request)
     {
@@ -182,12 +193,7 @@ class RegisterController extends Controller
         return view('auth.email');
     }
 
-    /**
-     * Where to redirect users after registration.
-     *
-     * @var string
-     */
-    protected $redirectTo = '/dashboard';
+    
 
     /**
      * Create a new controller instance.
@@ -293,11 +299,25 @@ class RegisterController extends Controller
         
         $this->validator($arr)->validate();
 
-        session()->flush();
+        /**
+         * 
+         * Forget all register related session
+         * 
+         */
+        session()->forget('email');
+        session()->forget('success');
+        session()->forget('failed');
+        session()->forget('code');
+        session()->forget('step2');
         
         event(new Registered($user = $this->create($request->all())));
 
         $this->guard()->login($user);
+        
+        if(session()->has('redirect')){
+            $this->redirectTo = session('redirect');
+            session()->forget('redirect');
+        }
 
         return $this->registered($request, $user)
                         ?: redirect($this->redirectPath());
