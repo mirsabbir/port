@@ -13,8 +13,7 @@
                     <form method="POST" action="{{ route('login') }}" aria-label="{{ __('Login') }}">
                         @csrf
 
-
-
+                        <!-- email field -->
                         <div class="form-group row">
                             <label for="email" class="col-sm-4 col-form-label text-md-right">{{ __('E-Mail Address') }}</label>
 
@@ -28,7 +27,7 @@
                                 @endif
                             </div>
                         </div>
-
+                        <!-- password field -->
                         <div class="form-group row">
                             <label for="password" class="col-md-4 col-form-label text-md-right">{{ __('Password') }}</label>
 
@@ -43,6 +42,7 @@
                             </div>
                         </div>
 
+                        <!-- remember me field -->
                         <div class="form-group row">
                             <div class="col-md-6 offset-md-4">
                                 <div class="checkbox">
@@ -78,3 +78,11 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+    <link rel="stylesheet" href="{{asset('css/app.css')}}">
+@endpush
+
+@push('js')
+    <script src="{{ asset('js/app.js') }}"></script>
+@endpush

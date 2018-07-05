@@ -33,3 +33,13 @@
     </div>
 </div>
 @endsection
+
+
+@push('styles')
+    <link rel="stylesheet" href="{{asset('css/app.css')}}">
+@endpush
+
+@push('js')
+    <script src="{{ asset('js/app.js') }}"></script>
+    <script src='https://www.google.com/recaptcha/api.js'></script>
+@endpush

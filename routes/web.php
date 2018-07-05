@@ -34,6 +34,14 @@ Route::get('login/twitter/callback', 'Auth\LoginController@handleProviderCallbac
 Route::get('login/linkedin', 'Auth\LoginController@redirectToProviderLinkedin');
 Route::get('login/linkedin/callback', 'Auth\LoginController@handleProviderCallbackLinkedin');
 
+Route::post('register/regenerate', function(){
+    session()->forget('email');
+    session()->forget('success');
+    session()->forget('failed');
+    session()->forget('code');
+    session()->forget('step2');
+    return redirect('register');
+});
 
 Auth::routes();
 

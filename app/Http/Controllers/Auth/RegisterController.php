@@ -30,29 +30,93 @@ class RegisterController extends Controller
     public function showRegistrationForm(Request $request)
     {
         /**
+         * if status is failed 
+         * return them to 'verify page'
+         * 
+         */
+        if(session()->has('failed')){
+            return view('auth.verify');
+        }
+
+        /**
+         * if status is success
+         * return to the 'enter details page'
+         * 
+         */
+        if(session()->has('success')){
+            return view('auth.register');
+        }
+
+        
+
+        /**
          * -----------------------------------------------------------
          *          GET request /register?code=XXXXXX (last step)
          * -----------------------------------------------------------
          * 
+         *  second step ---> third step
+         *  HEAD contains 'code'
+         *  scenario -
+         *  1. someone types code in the input box
+         *  2. someone enters address in the addressbar with HEAD
          *  
-         * 
-         * 
+         *  response -
+         *  either return them the 'enter details page' (name, password, etc)
+         *  or a failed response
+         *  
          */
-        
         if($request->has('code')){
+            /** 
+             * If HEAD contains 'code' but session does not
+             * scenario -
+             * 1. someone enters address in the addressbar with HEAD,
+             * but they have no code saved in the session
+             * 2. someone enters correct code but 120 min later
+             * their code deleted from session
+             * 
+             * return them 'enter email page'
+             * No message required
+             * 
+             */
+            if(!session()->has('code')){
+                return view('auth.email');
+            }
+            /**
+             * 
+             * If they have code
+             * 
+             * check if both code equals
+             * ----------------------------------------------
+             *       if equal         |     if not equal
+             * ----------------------------------------------
+             *  session -> success    |    session -> failed
+             *     ( verified )       |     ( wrong code )
+             *                        |
+             *                        |
+             * 
+             * 
+             * 
+             */
+
             if($request->code==session('code')){
                 session(['success'=>'verified']);
+                $emailFromSession = session('email');
+                session(['email' => $emailFromSession]);
                 return view('auth.register');
             }  
             else{
                 if(session()->has('email')){
                     session()->flash('failed','Wrong Code');
-                    return redirect('register?email='.urlencode(session('email')));
+                    return redirect('register');
                 } else {
                     return redirect()->route('register');
                 }
             }
         }
+
+
+
+        
 
         /**
          * ---------------------------------------------------------------
@@ -60,19 +124,26 @@ class RegisterController extends Controller
          * ---------------------------------------------------------------
          * 
          * 
+         *  first step --> second step
+         *  when email is present in HEAD
+         * 
+         *
+         * 
          * 
          */
-
-
-
+        
+         /**--------------------------------------------
+         * 
+         * validate this email
+         * 
+         */
         if($request->has('email')){
+            
             $validatedData = $request->validate([
                 'email' => 'email|required|unique:users',
             ]);
 
-            if(session()->has('failed')){
-                return view('auth.verify');
-            }
+
 
             // generate a code
             $code = 5;
@@ -86,10 +157,20 @@ class RegisterController extends Controller
             session(['code' => $code]);
         
             SendEmailVerification::dispatch($request->email, $code);
+
+            session(['step2' => 'user was on step two']);
             
             return view('auth.verify');
         }
         
+
+        /**
+         * was on step two ? redirect them to step2
+         */
+        if(session()->has('step2')){
+            return view('auth.verify');
+        }
+
         /**
          * ------------------------------------------------
          *                  First step
